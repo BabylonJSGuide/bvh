@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+    <title>hitTest</title>
+
+	<script src= "../babylon.max.js"></script>
+	<script src= "morton.js"></script>
+    <script src= "bvhByNode.js"></script>
+    <script src= "radix.js"></script>
+	
+	
+    <style>
+        html, body {
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        #renderCanvas {
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    <script>
+
+
+if (BABYLON.Engine.isSupported()) {
+    var canvas = document.getElementById("renderCanvas");
+    var engine = new BABYLON.Engine(canvas, true);
+
+
+var createScene = function () {
+
+    // This creates a basic Babylon Scene object (non-mesh)
+    var scene = new BABYLON.Scene(engine);
+
+    var camera = new BABYLON.ArcRotateCamera("Camera", 3 * Math.PI / 2, Math.PI / 8, 5, BABYLON.Vector3.Zero(), scene);
+
+	camera.attachControl(canvas, true);
+
+    // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
+    var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
+
+    // Default intensity is 1. Let's dim the light a small amount
+	light.intensity = 0.7;
+
+	width = 4;
+	height = 2;
+	depth = 2;
+    //let box = new BABYLON.MeshBuilder.CreateBox("box", {width : width, height: height, depth:depth});
+    let box = new BABYLON.MeshBuilder.CreateSphere("box", {segments:64});
+    box.forceSharedVertices();
+    //box.increaseVertices(2);
+	box.material = new BABYLON.StandardMaterial("");
+	box.material.wireframe = true;
+
+    let treeCluster = createBVH(box);
+
+    console.log("TC", treeCluster);
+    
+    let ray = new BABYLON.Ray(new BABYLON.Vector3(-8, 0.1, 0.1), BABYLON.Axis.X, 20);
+    BABYLON.RayHelper.CreateAndShow(ray, scene, BABYLON.Color3.White());
+
+    let positions = box.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+    let indices = box.getIndices();
+
+    let hits = bvhRayIntersect(ray, treeCluster, positions, indices);
+    console.log("hits", hits)
+    let mat = new BABYLON.StandardMaterial("", scene);
+    mat.diffuseColor = BABYLON.Color3.Red();
+    
+    let idx0 = 0;
+    let idx1 = 0;
+    let idx2 = 0;
+    let cntrd = BABYLON.Vector3.Zero();
+    for (let i = 0; i < hits.length; i++) {
+        let box = BABYLON.MeshBuilder.CreateBox("", {size: 0.05}, scene);
+        box.position = ray.origin.add(ray.direction.normalize().scale(hits[i].distance))
+        box.material = mat;
+
+    }
+    
+
+	return scene;
+
+};
+
+
+
+
+var scene = createScene();
+
+engine.runRenderLoop(function () {
+  scene.render();
+
+});
+
+window.addEventListener("resize", function () {
+    engine.resize();
+});
+        }
+    </script>
+</body>
+</html>
