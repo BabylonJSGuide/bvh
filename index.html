@@ -100,7 +100,7 @@ var createScene = function () {
     }); 
     
     button2.onPointerClickObservable.add(function () {
-        button.isVisible = false;
+        button2.isVisible = false;
         let ray = new BABYLON.Ray(new BABYLON.Vector3(-8, 0.1, 0.1), BABYLON.Axis.X, 20);
         BABYLON.RayHelper.CreateAndShow(ray, scene, BABYLON.Color3.White());
 

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+    <title>hitTest</title>
+
+    <script src= "babylon.max.js"></script>
+    <script src = babylon.gui.min.js></script>
+    <script src= "babylon.glTFFileLoader.js"></script>
+	<script src= "morton.js"></script>
+    <script src= "bvhByNode.js"></script>
+    <script src= "radix.js"></script>
+	
+	
+    <style>
+        html, body {
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        #renderCanvas {
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    <script>
+
+if (BABYLON.Engine.isSupported()) {
+    var canvas = document.getElementById("renderCanvas");
+    var engine = new BABYLON.Engine(canvas, true);
+
+
+var createScene = function () {
+
+    // This creates a basic Babylon Scene object (non-mesh)
+    var scene = new BABYLON.Scene(engine);
+
+    var camera = new BABYLON.ArcRotateCamera("Camera", - Math.PI / 2, Math.PI / 2.2, 5, BABYLON.Vector3.Zero(), scene);
+
+	camera.attachControl(canvas, true);
+
+    // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
+    var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
+
+    // Default intensity is 1. Let's dim the light a small amount
+    light.intensity = 0.7;
+    
+    
+
+	BABYLON.SceneLoader.ImportMesh("", "https://www.babylonjs.com/Assets/DamagedHelmet/glTF/", "DamagedHelmet.gltf", scene, function (meshes) {          
+        let box = meshes[1];
+
+        let gui = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("myUI");
+        let button = BABYLON.GUI.Button.CreateSimpleButton("button", "Click to Generate BVH");
+        button.top = "0px";
+        button.left = "0px";
+        button.width = "150px";
+        button.height = "150px";
+        button.cornerRadius = 20;
+        button.thickness = 4;
+        button.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        button.children[0].color = "#DFF9FB";
+        button.children[0].fontSize = 24;
+        button.color = "white";
+        button.background = "blue";
+
+        let button2 = BABYLON.GUI.Button.CreateSimpleButton("button2", "IntersectRay");
+        button2.top = "0px";
+        button2.left = "0px";
+        button2.width = "150px";
+        button2.height = "70px";
+        button2.cornerRadius = 20;
+        button2.thickness = 4;
+        button2.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        button2.children[0].color = "#DFF9FB";
+        button2.children[0].fontSize = 24;
+        button2.color = "white";
+        button2.background = "blue";
+        button2.isVisible = false;
+
+        let text1 = new BABYLON.GUI.TextBlock();
+        text1.text = "";
+        text1.color = "white";
+        text1.fontSize = 24;
+        text1.background = "blue";
+        text1.width = "650px";
+        text1.height = "70px";
+        text1.cornerRadius = 20;
+        text1.thickness = 4;
+        text1.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        text1.isVisible = false;
+        
+        gui.addControl(text1);
+
+        let treeCluster;
+
+        button.onPointerClickObservable.add(function () {
+            button.isVisible = false
+            treeCluster = createBVH(box);
+            button2.isVisible = true;
+        }); 
+        
+        button2.onPointerClickObservable.add(function () {
+            button2.isVisible = false;
+            let ray = new BABYLON.Ray(new BABYLON.Vector3(-8, 0.1, 0.1), BABYLON.Axis.X, 20);
+            BABYLON.RayHelper.CreateAndShow(ray, scene, BABYLON.Color3.White());
+
+            let positions = box.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+            let indices = box.getIndices();
+
+            const t0 = performance.now();
+            let hits = [];
+            for (var k = 0; k < 10000; k++) {
+                hits = bvhRayIntersect(ray, treeCluster, positions, indices);
+            }
+            const t1 = performance.now();
+            text1.text = `Time for 10000 ray intersections ${t1 - t0} milliseconds.`;
+            text1.isVisible = true;
+    
+        });
+
+        gui.addControl(button);
+        gui.addControl(button2); 
+            
+    });
+
+	return scene;
+
+};
+
+
+
+
+var scene = createScene();
+
+engine.runRenderLoop(function () {
+  scene.render();
+
+});
+
+window.addEventListener("resize", function () {
+    engine.resize();
+});
+        }
+    </script>
+</body>
+</html>
