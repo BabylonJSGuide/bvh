@@ -57,7 +57,9 @@ var createScene = function () {
 
 	BABYLON.SceneLoader.ImportMesh("", "https://www.babylonjs.com/Assets/DamagedHelmet/glTF/", "DamagedHelmet.gltf", scene, function (meshes) {          
         let box = meshes[1];
-
+        box.subdivide(50);
+        box.createOrUpdateSubmeshesOctree(64, 8);
+        box.useOctreeForPicking = true;
         let gui = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("myUI");
         let button = BABYLON.GUI.Button.CreateSimpleButton("button", "Click to Generate Octree");
         button.top = "0px";
