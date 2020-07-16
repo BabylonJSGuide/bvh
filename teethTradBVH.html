@@ -157,7 +157,7 @@ var createScene = function () {
             
             BVH_Build_Iterative(totalWork, aabb_array);
             let t1 = performance.now();
-            text1.text = `Time for 10000 ray intersections ${t1 - t0} milliseconds.`;
+            text1.text = `Time to Generate ${t1 - t0} milliseconds.`;
             text1.isVisible = true;
             console.log(buildnodes);
          
