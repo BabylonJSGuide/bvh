@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+    <title>Traditional BVH Pick</title>
+
+    <script src= "babylon.max.js"></script>
+    <script src = babylon.gui.min.js></script>
+    <script src= "babylon.stlFileLoader.js"></script>
+    <script src= "BVH_Acc_Structure_Iterative_Builder.js"></script>
+    <script src = "bvhray.js"></script>
+	
+	
+    <style>
+        html, body {
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        #renderCanvas {
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    <script>
+
+if (BABYLON.Engine.isSupported()) {
+    var canvas = document.getElementById("renderCanvas");
+    var engine = new BABYLON.Engine(canvas, true);
+
+
+var createScene = function () {
+
+    // This creates a basic Babylon Scene object (non-mesh)
+    var scene = new BABYLON.Scene(engine);
+
+    var camera = new BABYLON.ArcRotateCamera("Camera", 0, Math.PI / 2.2, 50, BABYLON.Vector3.Zero(), scene);
+
+	camera.attachControl(canvas, true);
+
+    // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
+    var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
+
+    // Default intensity is 1. Let's dim the light a small amount
+    light.intensity = 0.7;
+    
+    mat = new BABYLON.StandardMaterial("", scene);
+    mat.diffuseColor = BABYLON.Color3.Red();
+
+    let totalWork;
+    let aabb_array = new Float32Array(2048 * 2048 * 4);
+    // 2048 = width of texture, 2048 = height of texture, 4 = r,g,b, and a components
+
+	BABYLON.SceneLoader.ImportMesh("", "https://dl.dropbox.com/s/669cwldog3kdssw/", "2020-05-25_002_002-LowerJaw.stl", scene, function (meshes) {           
+        let helmet = meshes[0];
+        let positions = helmet.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+        console.log("P", positions.length / 3);
+        let indices = helmet.getIndices();
+        console.log("I", indices)
+;        let total_number_of_triangles = indices.length / 3;
+        console.log("TRI", total_number_of_triangles)
+        totalWork = new Uint32Array(total_number_of_triangles);
+
+        var vp0 = BABYLON.Vector3.Zero();
+        var vp1 = BABYLON.Vector3.Zero();
+        var vp2 = BABYLON.Vector3.Zero();
+
+        let gui = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("myUI");
+        let button = BABYLON.GUI.Button.CreateSimpleButton("button", "Click to Generate BVH");
+        button.top = "0px";
+        button.left = "0px";
+        button.width = "150px";
+        button.height = "150px";
+        button.cornerRadius = 20;
+        button.thickness = 4;
+        button.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        button.children[0].color = "#DFF9FB";
+        button.children[0].fontSize = 24;
+        button.color = "white";
+        button.background = "blue";
+
+
+        let text1 = new BABYLON.GUI.TextBlock();
+        text1.text = "";
+        text1.color = "white";
+        text1.fontSize = 24;
+        text1.background = "blue";
+        text1.width = "650px";
+        text1.height = "70px";
+        text1.cornerRadius = 20;
+        text1.thickness = 4;
+        text1.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        text1.isVisible = false;
+        
+        gui.addControl(text1);
+        
+
+        let treeCluster;
+
+        button.onPointerClickObservable.add(function () {
+            button.isVisible = false
+            // Build the BVH acceleration structure, which places a bounding box ('root' of the tree) around all of the 
+            // triangles of the entire mesh, then subdivides each box into 2 smaller boxes.  It continues until it reaches 1 triangle,
+            // which it then designates as a 'leaf'
+            //console.log("TL", totalWork, "AABB", aabb_array)
+            let t0 = performance.now();
+        var triangle_b_box_min = BABYLON.Vector3.Zero();
+        var triangle_b_box_max = BABYLON.Vector3.Zero();
+        var triangle_b_box_centroid = BABYLON.Vector3.Zero();
+
+        for (let i = 0; i < total_number_of_triangles; i++) {
+            
+            triangle_b_box_min.set(Infinity, Infinity, Infinity);
+            triangle_b_box_max.set(-Infinity, -Infinity, -Infinity);
+
+            index0 = indices[3 * i];
+		    index1 = indices[3 * i + 1];
+		    index2 = indices[3 * i + 2];
+            
+            // record vertex positions
+            vp0.set(positions[3 * index0], positions[3 * index0 + 1], positions[3 * index0 + 2]);
+            vp1.set(positions[3 * index1], positions[3 * index1 + 1], positions[3 * index1 + 2]);
+            vp2.set(positions[3 * index2], positions[3 * index2 + 1], positions[3 * index2 + 2]);
+
+
+            triangle_b_box_min = BABYLON.Vector3.Minimize(triangle_b_box_min, vp0);
+            triangle_b_box_max = BABYLON.Vector3.Maximize(triangle_b_box_max, vp0);
+            triangle_b_box_min = BABYLON.Vector3.Minimize(triangle_b_box_min, vp1);
+            triangle_b_box_max = BABYLON.Vector3.Maximize(triangle_b_box_max, vp1);
+            triangle_b_box_min = BABYLON.Vector3.Minimize(triangle_b_box_min, vp2);
+            triangle_b_box_max = BABYLON.Vector3.Maximize(triangle_b_box_max, vp2);
+
+            triangle_b_box_centroid.set((triangle_b_box_min.x + triangle_b_box_max.x) * 0.5,
+                                        (triangle_b_box_min.y + triangle_b_box_max.y) * 0.5,
+                                        (triangle_b_box_min.z + triangle_b_box_max.z) * 0.5);
+
+            aabb_array[9 * i + 0] = triangle_b_box_min.x;
+            aabb_array[9 * i + 1] = triangle_b_box_min.y;
+            aabb_array[9 * i + 2] = triangle_b_box_min.z;
+            aabb_array[9 * i + 3] = triangle_b_box_max.x;
+            aabb_array[9 * i + 4] = triangle_b_box_max.y;
+            aabb_array[9 * i + 5] = triangle_b_box_max.z;
+            aabb_array[9 * i + 6] = triangle_b_box_centroid.x;
+            aabb_array[9 * i + 7] = triangle_b_box_centroid.y;
+            aabb_array[9 * i + 8] = triangle_b_box_centroid.z;
+
+            totalWork[i] = i;
+        }
+            
+            BVH_Build_Iterative(totalWork, aabb_array);
+            let t1 = performance.now();
+            text1.text = `Time for 10000 ray intersections ${t1 - t0} milliseconds.`;
+            text1.isVisible = true;
+            console.log(buildnodes);
+         
+        
+            scene.onPointerDown = function() {
+                //let ray = new BABYLON.Ray(new BABYLON.Vector3(-8, 0.1, 0.1), BABYLON.Axis.X, 120);
+                let ray = scene.createPickingRay(scene.pointerX, scene.pointerY, BABYLON.Matrix.Identity(), camera);
+                //BABYLON.RayHelper.CreateAndShow(ray, scene, BABYLON.Color3.Red());
+
+                let positions = helmet.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+                let indices = helmet.getIndices();
+
+                const t0 = performance.now();
+                let hits = [];
+                hits = bvhRayIntersect(ray, buildnodes, helmet);
+                const t1 = performance.now();
+                text1.text = `Time for ray intersection ${t1 - t0} milliseconds.`;
+                text1.isVisible = true;
+                //console.log("H", hits)
+                for (let i = 0; i < hits.length; i++) {
+                    box = BABYLON.MeshBuilder.CreateBox("", {size: 0.5}, scene);
+                    box.position = ray.origin.add(ray.direction.normalize().scale(hits[i].distance))
+                    box.material = mat;
+                }
+    
+            };
+
+        });
+
+        gui.addControl(button);
+            
+    });
+
+	return scene;
+
+};
+
+
+
+
+var scene = createScene();
+
+engine.runRenderLoop(function () {
+  scene.render();
+
+});
+
+window.addEventListener("resize", function () {
+    engine.resize();
+});
+        }
+    </script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 
-    <title>hitTest</title>
+    <title>Morton BVH Pick</title>
 
     <script src= "babylon.max.js"></script>
     <script src = babylon.gui.min.js></script>
@@ -94,7 +94,11 @@ var createScene = function () {
 
         button.onPointerClickObservable.add(function () {
             button.isVisible = false
+            let t0 = performance.now();
             treeCluster = createBVH(jaw);
+            let t1 = performance.now();
+            text1.text = `Time for ray intersection ${t1 - t0} milliseconds.`;
+            text1.isVisible = true;
          
         
             scene.onPointerDown = function() {
@@ -105,12 +109,10 @@ var createScene = function () {
                 let positions = jaw.getVerticesData(BABYLON.VertexBuffer.PositionKind);
                 let indices = jaw.getIndices();
 
-                const t0 = performance.now();
+                t0 = performance.now();
                 let hits = [];
-            //for (var k = 0; k < 10000; k++) {
-                    hits = bvhRayIntersect(ray, treeCluster, positions, indices);
-            //}
-                const t1 = performance.now();
+                hits = bvhRayIntersect(ray, treeCluster, positions, indices)
+                t1 = performance.now();
                 text1.text = `Time for ray intersection ${t1 - t0} milliseconds.`;
                 text1.isVisible = true;
                 for (let i = 0; i < hits.length; i++) {
