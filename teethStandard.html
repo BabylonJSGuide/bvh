@@ -75,6 +75,8 @@ var createScene = function () {
         
         gui.addControl(text1);
 
+            let counter = 0;
+            let totalTime = 0;
             scene.onPointerDown = function() {
                 //let ray = new BABYLON.Ray(new BABYLON.Vector3(-8, 0.1, 0.1), BABYLON.Axis.X, 120);
                 let ray = scene.createPickingRay(scene.pointerX, scene.pointerY, BABYLON.Matrix.Identity(), camera);
@@ -88,6 +90,9 @@ var createScene = function () {
                 hit = jaw.intersects(ray);
                 const t1 = performance.now();
                 text1.text = `Time for ray intersection ${t1 - t0} milliseconds.`;
+                totalTime += t1 - t0;
+                counter++;
+                console.log("avg", totalTime / counter);
                 text1.isVisible = true;
                     box = BABYLON.MeshBuilder.CreateBox("", {size: 0.5}, scene);
                     box.position = ray.origin.add(ray.direction.normalize().scale(hit.distance))

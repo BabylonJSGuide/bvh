@@ -1,7 +1,6 @@
 let bvhRayIntersect = (ray, bvhTree, mesh) => {
     let bbMin = BABYLON.Vector3.Zero();
     let bbMax = BABYLON.Vector3.Zero();
-    let nodes = bvhTree.concat([]);
     //console.log(nodes.length);
     let triIndices = [];
 
@@ -14,23 +13,19 @@ let bvhRayIntersect = (ray, bvhTree, mesh) => {
     BABYLON.Ray.TransformToRef(ray, tm, tr);
     //console.log("TEMP RAY", tr);
         
-
-
-    while (nodes.length > 0) {
-        var node = nodes.pop();
-
+    let searchTree = (node) => {
         if (tr.intersectsBoxMinMax(node.minCorner, node.maxCorner, 0.0000001)) {
-            if (node.idLeftChild < 0) {
+            if (node.idLeftChild < 0) { //leaf
                 triIndices.push(Math.abs(node.idLeftChild + 1));
             }
             else {
-                for (let n = 0; n < node.length; n++) {
-                    nodes.push(node[n]);
-                }
+                searchTree(bvhTree[node.idLeftChild]);
+                searchTree(bvhTree[node.idRightChild]);
             }
-            
         }
     }
+    
+    searchTree(bvhTree[0]);
     return genInfo(mesh, ray, triIndices);
     
 }

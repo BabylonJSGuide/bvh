@@ -113,6 +113,7 @@ var createScene = function () {
                 let hits = [];
                 hits = bvhRayIntersect(ray, treeCluster, positions, indices)
                 t1 = performance.now();
+                //console.log("H", hits.length)
                 text1.text = `Time for ray intersection ${t1 - t0} milliseconds.`;
                 text1.isVisible = true;
                 for (let i = 0; i < hits.length; i++) {

@@ -382,9 +382,10 @@ let bvhRayIntersect = (ray, bvhTree, positions, indices) => {
             }
             
         }
-        //console.log("nodes", nodes);
+        console.log("N", nodes.length);
+        
     }
-
+    console.log(triIndices.length);
     let idx0 = 0;
     let idx1 = 0;
     let idx2 = 0;
