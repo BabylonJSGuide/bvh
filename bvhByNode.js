@@ -86,7 +86,7 @@ let dataFromSPS = (sps) => {
 }
 
 let codeMapFromObjectMap = (data) => {
-	const multF = Math.pow(2, 10);
+	const multF = Math.pow(2, 10) - 1;
 
     let codes = [];
     let mortonToIndexMap = {};    
